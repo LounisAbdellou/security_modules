@@ -1,0 +1,10 @@
+hard_tabs = false
+tab_spaces = 2
+max_width = 80
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+match_block_trailing_comma = true
+chain_width = 80
+newline_style = "Auto"
+use_field_init_shorthand = true
+reorder_impl_items = true
