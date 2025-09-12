@@ -2,9 +2,13 @@ use std::{collections::VecDeque, path::PathBuf};
 
 use regex::Regex;
 
+use crate::scrapper::file_manager::FileManager;
+
+mod file_manager;
+
 pub struct Scrapper {
   client: reqwest::blocking::Client,
-  destination_path: PathBuf,
+  file_manager: FileManager,
   recursion_max: u64,
   is_recursive: bool,
 }
@@ -21,7 +25,7 @@ impl Scrapper {
         .danger_accept_invalid_certs(true)
         .build()
         .expect("Failed to build client"),
-      destination_path,
+      file_manager: FileManager::from(destination_path),
       recursion_max: 1,
       is_recursive: false,
     }
@@ -44,6 +48,11 @@ impl Scrapper {
     }
   }
 
+  fn extract_domain(url: &String) -> Option<&str> {
+    let re = Regex::new(r"^(?:https?:\/\/)?([^\/]+)").unwrap();
+    re.captures(url).and_then(|cap| cap.get(1)).map(|m| m.as_str())
+  }
+
   fn parse_img(&self, url: &String, data: &String) {
     let regex =
       Regex::new(r#"<img[^>]+src=["']([^"']+\.(jpg|jpeg|png|gif|bmp))["']"#)
@@ -64,12 +73,32 @@ impl Scrapper {
         source.insert_str(0, url);
       }
 
-      self.fetch_img(&source);
+      println!("{source}");
+
+      // let img_data = match self.fetch_img(&source) {
+      //   Ok(data) => data,
+      //   Err(err) => {
+      //     println!("{err}");
+      //     continue;
+      //   },
+      // };
+      //
+      // self.file_manager.create_file(url, &source, img_data);
     }
   }
 
-  fn fetch_img(&self, url: &String) {
-    println!("{url}");
+  fn fetch_img(&self, url: &String) -> Result<Vec<u8>, String> {
+    let response = match self.client.get(url).send() {
+      Ok(res) => res,
+      Err(err) => return Err(format!("reqwest: {err}")),
+    };
+
+    let data = match response.bytes() {
+      Ok(d) => d.to_vec(),
+      Err(err) => return Err(format!("reqwest: {err}")),
+    };
+
+    Ok(data)
   }
 
   fn fetch_html(&self, url: &String, recursion_level: u64) {
@@ -87,6 +116,7 @@ impl Scrapper {
       Err(err) => return println!("reqwest: {err}"),
     };
 
+    self.file_manager.create_sub_dir(&recursion_level.to_string());
     self.parse_img(url, &data);
   }
 
@@ -103,6 +133,8 @@ impl Scrapper {
         },
       };
     }
+
+    self.file_manager.create_work_dir();
 
     match arguments.pop_front() {
       Some(url) => self.fetch_html(&url, 1),
