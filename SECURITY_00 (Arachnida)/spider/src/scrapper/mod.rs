@@ -3,7 +3,6 @@ use std::{
   path::PathBuf,
 };
 
-use quick_xml::escape::unescape;
 use regex::Regex;
 
 use crate::scrapper::file_manager::FileManager;
@@ -52,6 +51,10 @@ impl Scrapper {
     }
   }
 
+  fn unescape(&self, text: &String) -> String {
+    text.replace("&amp;", "&")
+  }
+
   fn parse_imgs(&self, url: &String, data: &String, dirname: &String) {
     let imgs_regex =
       Regex::new(r#"<img[^>]+src=["']([^"']+\.(jpg|jpeg|png|gif|bmp))["']"#)
@@ -62,39 +65,32 @@ impl Scrapper {
       .map(|capture| capture[1].to_string())
       .collect::<HashSet<String>>();
 
-    for source in sources {
-      let mut unescaped_source = match unescape(source.as_str()) {
-        Ok(s) => s.to_string(),
-        Err(err) => {
-          println!("quick-xml: {err}");
-          continue;
-        },
-      };
+    for mut source in sources {
+      source = self.unescape(&source);
 
-      if let None = unescaped_source.find("://") {
-        let first_char =
-          unescaped_source.chars().next().expect("Failed to get char");
+      if let None = source.find("://") {
+        let url_last_char = url.chars().last().expect("Failed to get char");
+        let source_first_char =
+          source.chars().next().expect("Failed to get char");
 
-        if first_char != '/' {
-          unescaped_source.insert(0, '/');
+        if source_first_char != '/' && url_last_char != '/' {
+          source.insert(0, '/');
         }
 
-        unescaped_source.insert_str(0, url);
+        source.insert_str(0, url);
       }
 
       let filename_regex =
         Regex::new(r#"[^\/]+$"#).expect("Failed to load filename regex");
 
-      let filename = match filename_regex
-        .find(unescaped_source.as_str())
-        .map(|res| res.as_str())
-      {
-        Some(name) => name.to_string(),
-        None => unescaped_source.clone(),
-      };
+      let filename =
+        match filename_regex.find(source.as_str()).map(|res| res.as_str()) {
+          Some(name) => name.to_string(),
+          None => source.clone(),
+        };
 
       if !self.file_manager.file_exist(dirname, &filename) {
-        let img_data = match self.fetch_img(&unescaped_source) {
+        let img_data = match self.fetch_img(&source) {
           Ok(data) => data,
           Err(err) => {
             println!("{err}");
@@ -117,21 +113,15 @@ impl Scrapper {
       .map(|capture| capture[2].to_string())
       .collect::<HashSet<String>>();
 
-    for link in links {
-      let mut unescaped_link = match unescape(link.as_str()) {
-        Ok(l) => l.to_string(),
-        Err(err) => {
-          println!("quick-xml: {err}");
-          continue;
-        },
-      };
+    for mut link in links {
+      link = self.unescape(&link);
 
-      if let None = unescaped_link.find("://") {
-        unescaped_link.insert_str(0, url);
+      if let None = link.find("://") {
+        link.insert_str(0, url);
       }
 
       if recursion_level < self.recursion_max {
-        self.fetch_html(&unescaped_link, recursion_level + 1);
+        self.fetch_html(&link, recursion_level + 1);
       }
     }
   }
