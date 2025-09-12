@@ -1,7 +1,5 @@
 use std::{fs::File, io::Write, path::PathBuf};
 
-use regex::Regex;
-
 pub struct FileManager {
   work_dir_path: PathBuf,
 }
@@ -15,13 +13,13 @@ impl FileManager {
 
   pub fn create_file(
     &self,
-    dir_name: &String,
-    file_name: &String,
+    dirname: &String,
+    filename: &String,
     data: Vec<u8>,
   ) {
     let mut file_path = self.work_dir_path.clone();
-    file_path.push(dir_name);
-    file_path.push(file_name);
+    file_path.push(dirname);
+    file_path.push(filename);
 
     let mut file = match File::create(file_path) {
       Ok(file) => file,
@@ -38,8 +36,6 @@ impl FileManager {
       return;
     }
 
-    println!("{}", dir_path.to_str().unwrap());
-
     let dir = std::fs::create_dir(dir_path);
 
     if let Err(err) = dir {
@@ -52,9 +48,9 @@ impl FileManager {
     self.create_dir(&self.work_dir_path);
   }
 
-  pub fn create_sub_dir(&self, dir_name: &String) {
+  pub fn create_sub_dir(&self, dirname: &String) {
     let mut dir_path = self.work_dir_path.clone();
-    dir_path.push(dir_name);
+    dir_path.push(dirname);
 
     self.create_dir(&dir_path);
   }
