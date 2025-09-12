@@ -48,10 +48,10 @@ impl Scrapper {
     }
   }
 
-  fn extract_domain(url: &String) -> Option<&str> {
-    let re = Regex::new(r"^(?:https?:\/\/)?([^\/]+)").unwrap();
-    re.captures(url).and_then(|cap| cap.get(1)).map(|m| m.as_str())
-  }
+  // fn extract_domain(url: &String) -> Option<&str> {
+  //   let re = Regex::new(r"^(?:https?:\/\/)?([^\/]+)").unwrap();
+  //   re.captures(url).and_then(|cap| cap.get(1)).map(|m| m.as_str())
+  // }
 
   fn parse_img(&self, url: &String, data: &String) {
     let regex =
