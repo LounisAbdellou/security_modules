@@ -11,6 +11,14 @@ impl FileManager {
     }
   }
 
+  pub fn file_exist(&self, dirname: &String, filename: &String) -> bool {
+    let mut file_path = self.work_dir_path.clone();
+    file_path.push(dirname);
+    file_path.push(filename);
+
+    file_path.exists()
+  }
+
   pub fn create_file(
     &self,
     dirname: &String,
